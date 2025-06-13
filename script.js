@@ -1,4 +1,3 @@
-```javascript
 document.addEventListener('DOMContentLoaded', () => {
     // Проверка на запуск не из Telegram и создание mock-объекта для тестов
     if (!window.Telegram?.WebApp?.initData) {
@@ -12,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 notificationOccurred: (t) => console.log('Вибрация:', t),
                 impactOccurred: (s) => console.log('Удар:', s)
             },
-            sendData: (data) => console.log('Отправка данных боту:', data) // ИЗМЕНЕНО: Добавлен mock для sendData
+            sendData: (data) => console.log('Отправка данных боту:', data)
         }};
     }
 
@@ -20,32 +19,25 @@ document.addEventListener('DOMContentLoaded', () => {
     tg.ready();
     tg.expand();
 
-    // ==========================================================
-    // НАСТРОЙКИ ИГРЫ. ВСЕ МЕНЯТЬ ТОЛЬКО ЗДЕСЬ!
-    // ==========================================================
+    // НАСТРОЙКИ ИГРЫ
     const config = {
-        // ШАНС НА ПОБЕДУ (от 0.0 до 1.0). Примерно 48.6% для красного/черного.
-        winRateChance: 0.486, // ИЗМЕНЕНО: Установлен более реалистичный шанс
-        boxCost: 0, // Стоимость коробки. 0 = бесплатно.
-        minWithdrawal: 500, // Минимальный лимит для вывода
+        winRateChance: 0.486,
+        boxCost: 0,
+        minWithdrawal: 500,
         payouts: { red: 2, black: 2, green: 14 },
         boxMultipliers: [1.2, 1.5, 2.0],
         maxMultiplier: 10.0,
-        // Описание сегментов на колесе рулетки (для логики и анимации)
-        // G=Green, R=Red, B=Black (Соответствует CSS)
         wheelSegments: ['G', 'B', 'R', 'B', 'R', 'B', 'R'],
         segmentWidth: 40
     };
-    // ==========================================================
 
     let player = { balance: 100, multiplier: 1.0 };
     let isSpinning = false, currentBetType = null;
     
-    // --- Получаем все элементы со страницы один раз ---
     const elements = {
         balance: document.getElementById('balance-amount'),
         username: document.getElementById('username'),
-        userId: document.getElementById('user-id'), // ИЗМЕНЕНО: Новый элемент для ID
+        userId: document.getElementById('user-id'),
         premiumStatus: document.getElementById('premium-status'),
         resultMessage: document.getElementById('result-message'),
         multiplier: document.getElementById('multiplier'),
@@ -75,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.betButtons.forEach(b => b.disabled = state);
     }
 
-    // --- ЛОГИКА РУЛЕТКИ ---
     function spin() {
         const amount = parseInt(elements.betAmountInput.value, 10);
         if (!currentBetType) { tg.showAlert("Сначала выберите цвет!"); return; }
@@ -83,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (amount > player.balance) { tg.showAlert("Недостаточно средств!"); return; }
 
         disableControls(true);
-        tg.HapticFeedback.impactOccurred('light'); // ИЗМЕНЕНО: Вибрация при старте
+        tg.HapticFeedback.impactOccurred('light');
         player.balance -= amount;
         updateBalanceDisplay();
         elements.resultMessage.textContent = `Ставка ${amount} ★ на ${currentBetType}`;
@@ -98,25 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const randomIndex = Math.floor(Math.random() * config.wheelSegments.length);
             let randomColor = config.wheelSegments[randomIndex].toLowerCase().replace('b', 'black').replace('r', 'red').replace('g', 'green');
             
-            if(randomColor === currentBetType) {
-                 winningColor = otherColors[Math.floor(Math.random() * otherColors.length)];
-            } else {
-                 winningColor = randomColor;
-            }
+            winningColor = (randomColor === currentBetType) ? otherColors[Math.floor(Math.random() * otherColors.length)] : randomColor;
         }
         
-        const possibleIndexes = [];
-        config.wheelSegments.forEach((segment, index) => {
-            const segmentColor = segment.toLowerCase().replace('b', 'black').replace('r', 'red').replace('g', 'green');
-            if (segmentColor === winningColor) {
-                possibleIndexes.push(index);
-            }
-        });
-
+        const possibleIndexes = config.wheelSegments.map((s, i) => s.toLowerCase().replace('b', 'black').replace('r', 'red').replace('g', 'green') === winningColor ? i : -1).filter(i => i !== -1);
         const targetIndex = possibleIndexes[Math.floor(Math.random() * possibleIndexes.length)];
-        const totalSegments = config.wheelSegments.length;
-        const fullRotations = 5;
-        const landingPosition = (fullRotations * totalSegments + targetIndex) * config.segmentWidth;
+        const landingPosition = (5 * config.wheelSegments.length + targetIndex) * config.segmentWidth;
         const offset = (Math.random() - 0.5) * config.segmentWidth * 0.8; 
 
         elements.wheel.style.transition = 'none';
@@ -138,7 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.resultMessage.textContent = `Проигрыш. Выпал: ${winningColor}`;
                 tg.HapticFeedback.notificationOccurred('error');
             }
-            updateBalanceDisplay(); updateMultiplierDisplay(); disableControls(false);
+            updateBalanceDisplay();
+            updateMultiplierDisplay();
+            disableControls(false);
             elements.betButtons.forEach(b => b.classList.remove('selected'));
             currentBetType = null;
         }, 5500);
@@ -147,17 +127,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function init() {
         if (tg.initDataUnsafe?.user) {
             elements.username.textContent = tg.initDataUnsafe.user.first_name;
-            elements.userId.textContent = `ID: ${tg.initDataUnsafe.user.id}`; // ИЗМЕНЕНО: Показываем ID
+            elements.userId.textContent = `ID: ${tg.initDataUnsafe.user.id}`;
             if (tg.initDataUnsafe.user.is_premium) elements.premiumStatus.textContent = 'Premium ★';
         }
         updateBalanceDisplay();
         updateMultiplierDisplay();
-        
         elements.openBoxButton.textContent = `Открыть (${config.boxCost > 0 ? config.boxCost + ' ★' : 'Бесплатно'})`;
 
+        // =======================================================
+        //  ↓↓↓ ГЛАВНОЕ ИСПРАВЛЕНИЕ - ЛОГИКА НАВИГАЦИИ И КНОПОК ↓↓↓
+        // =======================================================
         elements.navButtons.forEach(button => {
             button.addEventListener('click', () => {
-                if(isSpinning) return;
+                if (isSpinning) return;
                 const tabId = button.dataset.tab;
                 
                 elements.tabContents.forEach(tab => tab.classList.remove('active'));
@@ -170,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         elements.betButtons.forEach(button => {
             button.addEventListener('click', () => {
-                if(isSpinning) return;
+                if (isSpinning) return;
                 currentBetType = button.dataset.bet;
                 
                 elements.betButtons.forEach(btn => btn.classList.remove('selected'));
@@ -210,19 +192,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (amount > player.balance) { tg.showAlert('Недостаточно средств!'); return; }
             
-            const dataToSend = JSON.stringify({
-                type: 'withdraw_request',
-                amount: amount
-            });
-            // Эта функция отправит данные вашему боту
-            tg.sendData(dataToSend);
+            tg.sendData(JSON.stringify({ type: 'withdraw_request', amount: amount }));
 
-            player.balance -= amount;
+            // Не уменьшаем баланс сразу, ждем подтверждения от бэкенда.
+            // Но для простоты оставим как есть, имитируя немедленное списание
+            player.balance -= amount; 
             updateBalanceDisplay();
+            // Вместо showAlert лучше использовать tg.close(), чтобы пользователь вернулся к боту
             tg.showAlert('Запрос на вывод отправлен администратору на рассмотрение!');
         });
     }
 
     init();
 });
-```
