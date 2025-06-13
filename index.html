@@ -10,16 +10,15 @@
     <div class="app">
         <header class="header">
             <div class="profile">
-                <div class="avatar" id="avatar-placeholder"></div>
+                <div class="avatar"></div>
                 <div class="user-info">
                     <div id="username">Загрузка...</div>
-                    <!-- ИЗМЕНЕНО: Добавлено поле для ID -->
                     <div id="user-id" class="small-text"></div>
                     <div id="premium-status"></div>
                 </div>
             </div>
             <div class="balance">
-                <span id="balance-amount">50</span>
+                <span id="balance-amount">100</span>
                 <span class="star-icon">★</span>
             </div>
         </header>
@@ -47,19 +46,17 @@
                 <div class="box-container">
                     <div class="box" id="luck-box">✨</div>
                 </div>
-                <!-- Текст на кнопке будет меняться из script.js -->
                 <button id="open-box-button" class="action-button">Открыть (Бесплатно)</button>
                 <p class="multiplier-info">Ваш множитель: <span id="multiplier">x1.0</span></p>
             </div>
 
             <div id="wallet-tab" class="tab-content">
                 <h2>💼 Кошелек 💼</h2>
-                <button id="topup-button" class="action-button wallet-btn">Пополнить звездами ★</button>
                 <div class="withdrawal-section">
                     <h3>Вывод средств</h3>
                     <input type="number" id="withdraw-amount" placeholder="Сумма вывода">
                     <button id="withdraw-button" class="action-button wallet-btn">Запросить вывод</button>
-                    <p class="small-text">Минимальная сумма для вывода: 500 ★. Запросы обрабатываются вручную.</p>
+                    <p class="small-text">Минимальная сумма для вывода: 500 ★</p>
                 </div>
             </div>
         </main>
@@ -71,9 +68,7 @@
         </nav>
     </div>
 
-    <!-- Подключаем официальный скрипт Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Подключаем наш скрипт с логикой -->
     <script src="script.js"></script>
 </body>
 </html>
