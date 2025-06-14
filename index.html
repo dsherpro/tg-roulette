@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Casino Bot 2.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="loader" class="loader active">
+        <div class="spinner"></div>
+        <p>Загрузка казино...</p>
+    </div>
+
+    <div class="app">
+        <header class="header">
+            <div class="profile">
+                <div class="avatar"></div>
+                <div class="user-info">
+                    <div id="username">Загрузка...</div>
+                    <div id="user-id" class="small-text"></div>
+                </div>
+            </div>
+            <div class="balance">
+                <span id="balance-amount">0</span>
+                <span class="star-icon">★</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div id="roulette-tab" class="tab-content active">
+                <div class="roulette-wheel-container">
+                    <div class="wheel-marker"></div>
+                    <div class="wheel" id="wheel"></div>
+                </div>
+                <div class="controls">
+                    <input type="number" id="bet-amount" placeholder="Сумма ставки" min="10">
+                    <div class="bet-options">
+                        <button class="bet-btn red" data-bet="red">x2</button>
+                        <button class="bet-btn green" data-bet="green">x14</button>
+                        <button class="bet-btn black" data-bet="black">x2</button>
+                    </div>
+                    <button id="spin-button" class="action-button">Крутить!</button>
+                </div>
+                 <div id="result-message" class="result-message">Выберите цвет и сделайте ставку</div>
+            </div>
+
+            <div id="boxes-tab" class="tab-content">
+                <h2>🎁 Коробки Удачи 🎁</h2>
+                <p>Открой коробку и увеличь свой следующий выигрыш!</p>
+                <div class="box-container">
+                    <div class="box" id="luck-box">✨</div>
+                </div>
+                <button id="open-box-button" class="action-button">Открыть (Бесплатно)</button>
+                <p class="multiplier-info">Текущий множитель: <span id="multiplier">x1.0</span></p>
+            </div>
+
+            <div id="wallet-tab" class="tab-content">
+                <h2>💼 Кошелек 💼</h2>
+                <div class="withdrawal-section">
+                    <h3>Вывод средств</h3>
+                    <input type="number" id="withdraw-amount" placeholder="Сумма для вывода">
+                    <button id="withdraw-button" class="action-button wallet-btn">Запросить вывод</button>
+                    <p class="small-text">Минимальная сумма: 500 ★. Запросы обрабатываются вручную.</p>
+                </div>
+                <button id="reset-progress-button" class="action-button secondary-btn">Сбросить прогресс</button>
+            </div>
+        </main>
+
+        <nav class="navigation">
+            <button class="nav-btn active" data-tab="roulette-tab">🎰 Рулетка</button>
+            <button class="nav-btn" data-tab="boxes-tab">🎁 Коробки</button>
+            <button class="nav-btn" data-tab="wallet-tab">💼 Кошелек</button>
+        </nav>
+    </div>
+    
+    <div id="bonus-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>🎉 Ежедневный Бонус! 🎉</h2>
+            <p>Вы получаете <strong>100 ★</strong> за первый вход сегодня!</p>
+            <button id="claim-bonus-button" class="action-button">Забрать!</button>
+        </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
