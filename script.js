@@ -4,13 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn("Телеграм API не найден. Создаю mock-объект для теста.");
         window.Telegram = { WebApp: {
             initDataUnsafe: { user: { id: 12345, first_name: 'Тестер', is_premium: true } },
-            ready: () => {},
-            expand: () => {},
-            showAlert: (m) => alert(m),
-            HapticFeedback: {
-                notificationOccurred: (t) => console.log('Вибрация:', t),
-                impactOccurred: (s) => console.log('Удар:', s)
-            },
+            ready: () => {}, expand: () => {}, showAlert: (m) => alert(m),
+            HapticFeedback: { notificationOccurred: (t) => console.log('Вибрация:', t), impactOccurred: (s) => console.log('Удар:', s) },
             sendData: (data) => console.log('Отправка данных боту:', data)
         }};
     }
@@ -21,36 +16,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // НАСТРОЙКИ ИГРЫ
     const config = {
-        winRateChance: 0.486,
-        boxCost: 0,
-        minWithdrawal: 500,
+        winRateChance: 0.486, boxCost: 0, minWithdrawal: 500,
         payouts: { red: 2, black: 2, green: 14 },
-        boxMultipliers: [1.2, 1.5, 2.0],
-        maxMultiplier: 10.0,
-        wheelSegments: ['G', 'B', 'R', 'B', 'R', 'B', 'R'],
-        segmentWidth: 40
+        boxMultipliers: [1.2, 1.5, 2.0], maxMultiplier: 10.0,
+        wheelSegments: ['G', 'B', 'R', 'B', 'R', 'B', 'R'], segmentWidth: 40
     };
 
     let player = { balance: 100, multiplier: 1.0 };
     let isSpinning = false, currentBetType = null;
     
+    // Получаем все элементы со страницы один раз
     const elements = {
-        balance: document.getElementById('balance-amount'),
-        username: document.getElementById('username'),
-        userId: document.getElementById('user-id'),
-        premiumStatus: document.getElementById('premium-status'),
-        resultMessage: document.getElementById('result-message'),
-        multiplier: document.getElementById('multiplier'),
-        betAmountInput: document.getElementById('bet-amount'),
-        withdrawAmountInput: document.getElementById('withdraw-amount'),
-        spinButton: document.getElementById('spin-button'),
-        openBoxButton: document.getElementById('open-box-button'),
-        withdrawButton: document.getElementById('withdraw-button'),
-        luckBox: document.getElementById('luck-box'),
-        wheel: document.getElementById('wheel'),
-        navButtons: document.querySelectorAll('.nav-btn'),
-        tabContents: document.querySelectorAll('.tab-content'),
-        betButtons: document.querySelectorAll('.bet-btn')
+        balance: document.getElementById('balance-amount'), username: document.getElementById('username'), userId: document.getElementById('user-id'),
+        premiumStatus: document.getElementById('premium-status'), resultMessage: document.getElementById('result-message'), multiplier: document.getElementById('multiplier'),
+        betAmountInput: document.getElementById('bet-amount'), withdrawAmountInput: document.getElementById('withdraw-amount'), spinButton: document.getElementById('spin-button'),
+        openBoxButton: document.getElementById('open-box-button'), withdrawButton: document.getElementById('withdraw-button'), luckBox: document.getElementById('luck-box'),
+        wheel: document.getElementById('wheel'), navButtons: document.querySelectorAll('.nav-btn'),
+        tabContents: document.querySelectorAll('.tab-content'), betButtons: document.querySelectorAll('.bet-btn')
     };
 
     function updateBalanceDisplay() {
@@ -64,9 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.spinButton.disabled = state;
         elements.openBoxButton.disabled = state;
         elements.withdrawButton.disabled = state;
+        elements.navButtons.forEach(b => b.disabled = state); // Блокируем навигацию во время спина
         elements.betButtons.forEach(b => b.disabled = state);
     }
 
+    // --- ФУНКЦИЯ ВРАЩЕНИЯ РУЛЕТКИ ---
     function spin() {
         const amount = parseInt(elements.betAmountInput.value, 10);
         if (!currentBetType) { tg.showAlert("Сначала выберите цвет!"); return; }
@@ -124,7 +108,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5500);
     }
     
+    // --- ФУНКЦИЯ ОТКРЫТИЯ КОРОБКИ ---
+    function openBox() {
+        if (player.balance < config.boxCost) { tg.showAlert(`Нужно ${config.boxCost} ★`); return; }
+        if (isSpinning) return;
+        
+        disableControls(true);
+        if (config.boxCost > 0) player.balance -= config.boxCost;
+        updateBalanceDisplay();
+        elements.luckBox.classList.add('opening');
+        tg.HapticFeedback.impactOccurred('heavy');
+        
+        setTimeout(() => {
+            const newMultiplier = config.boxMultipliers[Math.floor(Math.random() * config.boxMultipliers.length)];
+            player.multiplier *= newMultiplier;
+            if (player.multiplier > config.maxMultiplier) player.multiplier = config.maxMultiplier;
+            
+            updateMultiplierDisplay();
+            tg.showAlert(`Ваш новый множитель: x${player.multiplier.toFixed(1)}`);
+            elements.luckBox.classList.remove('opening');
+            disableControls(false);
+        }, 700);
+    }
+    
+    // --- ФУНКЦИЯ ЗАПРОСА ВЫВОДА ---
+    function requestWithdrawal() {
+        const amount = parseInt(elements.withdrawAmountInput.value, 10);
+        if (isNaN(amount) || amount < config.minWithdrawal) {
+            tg.showAlert(`Минимальная сумма для вывода: ${config.minWithdrawal} ★`); return;
+        }
+        if (amount > player.balance) { tg.showAlert('Недостаточно средств!'); return; }
+        
+        // Отправляем данные боту
+        tg.sendData(JSON.stringify({ type: 'withdraw_request', amount: amount }));
+        
+        // Временно уменьшаем баланс на стороне клиента для наглядности
+        player.balance -= amount;
+        updateBalanceDisplay();
+        
+        tg.showAlert('Запрос на вывод отправлен администратору на рассмотрение!');
+    }
+    
+    // ==========================================================
+    //  ↓↓↓ ГЛАВНАЯ ФУНКЦИЯ, КОТОРАЯ ВСЁ ЗАПУСКАЕТ (INIT) ↓↓↓
+    //  ЗДЕСЬ НАХОДЯТСЯ ВСЕ ИСПРАВЛЕНИЯ ДЛЯ ИНТЕРФЕЙСА
+    // ==========================================================
     function init() {
+        // Заполнение данных пользователя
         if (tg.initDataUnsafe?.user) {
             elements.username.textContent = tg.initDataUnsafe.user.first_name;
             elements.userId.textContent = `ID: ${tg.initDataUnsafe.user.id}`;
@@ -134,12 +164,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateMultiplierDisplay();
         elements.openBoxButton.textContent = `Открыть (${config.boxCost > 0 ? config.boxCost + ' ★' : 'Бесплатно'})`;
 
-        // =======================================================
-        //  ↓↓↓ ГЛАВНОЕ ИСПРАВЛЕНИЕ - ЛОГИКА НАВИГАЦИИ И КНОПОК ↓↓↓
-        // =======================================================
+        // ИСПРАВЛЕНИЕ #1: ДОБАВЛЕНА РАБОЧАЯ ЛОГИКА ДЛЯ НАВИГАЦИИ (РУЛЕТКА, КОРОБКИ, КОШЕЛЕК)
         elements.navButtons.forEach(button => {
             button.addEventListener('click', () => {
-                if (isSpinning) return;
                 const tabId = button.dataset.tab;
                 
                 elements.tabContents.forEach(tab => tab.classList.remove('active'));
@@ -150,58 +177,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         
+        // ИСПРАВЛЕНИЕ #2: ДОБАВЛЕНА РАБОЧАЯ ЛОГИКА ДЛЯ ВЫБОРА ЦВЕТА СТАВКИ
         elements.betButtons.forEach(button => {
             button.addEventListener('click', () => {
-                if (isSpinning) return;
                 currentBetType = button.dataset.bet;
-                
                 elements.betButtons.forEach(btn => btn.classList.remove('selected'));
                 button.classList.add('selected');
                 tg.HapticFeedback.impactOccurred('light');
             });
         });
         
+        // ИСПРАВЛЕНИЕ #3: КОРРЕКТНО ПРИВЯЗЫВАЕМ ВСЕ ОСНОВНЫЕ ФУНКЦИИ К КНОПКАМ
         elements.spinButton.addEventListener('click', spin);
-        
-        elements.openBoxButton.addEventListener('click', () => {
-            if (player.balance < config.boxCost) { tg.showAlert(`Нужно ${config.boxCost} ★`); return; }
-            if (isSpinning) return;
-            
-            disableControls(true);
-            if (config.boxCost > 0) player.balance -= config.boxCost;
-            updateBalanceDisplay();
-            elements.luckBox.classList.add('opening');
-            tg.HapticFeedback.impactOccurred('heavy');
-            
-            setTimeout(() => {
-                const newMultiplier = config.boxMultipliers[Math.floor(Math.random() * config.boxMultipliers.length)];
-                player.multiplier *= newMultiplier;
-                if (player.multiplier > config.maxMultiplier) player.multiplier = config.maxMultiplier;
-                
-                updateMultiplierDisplay();
-                tg.showAlert(`Ваш новый множитель: x${player.multiplier.toFixed(1)}`);
-                elements.luckBox.classList.remove('opening');
-                disableControls(false);
-            }, 700);
-        });
-
-        elements.withdrawButton.addEventListener('click', () => {
-            const amount = parseInt(elements.withdrawAmountInput.value, 10);
-            if (isNaN(amount) || amount < config.minWithdrawal) {
-                tg.showAlert(`Минимальная сумма для вывода: ${config.minWithdrawal} ★`); return;
-            }
-            if (amount > player.balance) { tg.showAlert('Недостаточно средств!'); return; }
-            
-            tg.sendData(JSON.stringify({ type: 'withdraw_request', amount: amount }));
-
-            // Не уменьшаем баланс сразу, ждем подтверждения от бэкенда.
-            // Но для простоты оставим как есть, имитируя немедленное списание
-            player.balance -= amount; 
-            updateBalanceDisplay();
-            // Вместо showAlert лучше использовать tg.close(), чтобы пользователь вернулся к боту
-            tg.showAlert('Запрос на вывод отправлен администратору на рассмотрение!');
-        });
+        elements.openBoxButton.addEventListener('click', openBox);
+        elements.withdrawButton.addEventListener('click', requestWithdrawal);
     }
 
+    // Запускаем всю нашу логику!
     init();
 });
